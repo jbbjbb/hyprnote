@@ -60,13 +60,7 @@ pub async fn main() {
         builder = builder.plugin(plugin);
     }
 
-    let specta_builder = make_specta_builder();
-
     let app = builder
-        .invoke_handler({
-            let handler = specta_builder.invoke_handler();
-            move |invoke| handler(invoke)
-        })
         .on_window_event(tauri_plugin_windows::on_window_event)
         .setup(move |app| {
             let app = app.handle().clone();
@@ -85,9 +79,10 @@ pub async fn main() {
             };
 
             {
-                use tauri_plugin_tray::TrayPluginExt;
+                use tauri_plugin_tray::{HyprAppIcon, TrayPluginExt};
                 app.create_tray_menu().unwrap();
                 app.create_app_menu().unwrap();
+                app.set_app_icon(HyprAppIcon::Default).unwrap();
             }
 
             tokio::spawn(async move {
@@ -101,7 +96,6 @@ pub async fn main() {
                 }
             });
 
-            specta_builder.mount_events(&app);
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -118,28 +112,4 @@ pub async fn main() {
             AppWindow::Main.show(app).unwrap();
         }
     });
-}
-
-fn make_specta_builder<R: tauri::Runtime>() -> tauri_specta::Builder<R> {
-    tauri_specta::Builder::<R>::new()
-        .commands(tauri_specta::collect_commands![])
-        .error_handling(tauri_specta::ErrorHandlingMode::Throw)
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn export_types() {
-        make_specta_builder::<tauri::Wry>()
-            .export(
-                specta_typescript::Typescript::default()
-                    .header("// @ts-nocheck\n\n")
-                    .formatter(specta_typescript::formatter::prettier)
-                    .bigint(specta_typescript::BigIntExportBehavior::Number),
-                "../src/types/tauri.gen.ts",
-            )
-            .unwrap()
-    }
 }

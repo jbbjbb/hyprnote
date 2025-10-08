@@ -22,7 +22,7 @@
     "db2:default",
     "windows:default",
     "tracing:default",
-    "tray:default",
+    "tray:allow-set-app-icon",
     "auth:default",
     "analytics:default",
     "updater:default",

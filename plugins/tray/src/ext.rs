@@ -20,6 +20,12 @@ pub enum HyprMenuItem {
     AppNew,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
+pub enum HyprAppIcon {
+    Default,
+    Another,
+}
+
 impl From<HyprMenuItem> for MenuId {
     fn from(value: HyprMenuItem) -> Self {
         match value {
@@ -51,6 +57,7 @@ pub trait TrayPluginExt<R: tauri::Runtime> {
     fn create_app_menu(&self) -> Result<()>;
     fn create_tray_menu(&self) -> Result<()>;
     fn set_start_disabled(&self, disabled: bool) -> Result<()>;
+    fn set_app_icon(&self, icon: HyprAppIcon) -> Result<()>;
 }
 
 impl<T: tauri::Manager<tauri::Wry>> TrayPluginExt<tauri::Wry> for T {
@@ -208,6 +215,34 @@ impl<T: tauri::Manager<tauri::Wry>> TrayPluginExt<tauri::Wry> for T {
         }
 
         Ok(())
+    }
+
+    fn set_app_icon(&self, icon: HyprAppIcon) -> Result<()> {
+        use objc2::AnyThread;
+        use objc2_app_kit::{NSApplication, NSImage};
+        use objc2_foundation::{MainThreadMarker, NSData};
+
+        let icon_bytes = match icon {
+            HyprAppIcon::Default => include_bytes!("../icons/tray_default.png"),
+            HyprAppIcon::Another => include_bytes!("../icons/tray_default.png"),
+        };
+
+        // https://github.com/tauri-apps/tauri/issues/2985#issuecomment-987308498
+        unsafe {
+            let mtm = MainThreadMarker::new().unwrap();
+            let app = NSApplication::sharedApplication(mtm);
+
+            let data = NSData::dataWithBytes_length(
+                icon_bytes.as_ptr() as *const std::ffi::c_void,
+                icon_bytes.len(),
+            );
+
+            if let Some(img) = NSImage::initWithData(NSImage::alloc(), &data) {
+                app.setApplicationIconImage(Some(&img));
+            }
+
+            Ok(())
+        }
     }
 }
 

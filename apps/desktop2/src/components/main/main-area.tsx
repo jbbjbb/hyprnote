@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Reorder } from "motion/react";
 
+import { commands as trayCommands } from "@hypr/plugin-tray";
 import { commands as windowsCommands } from "@hypr/plugin-windows";
 import NoteEditor from "@hypr/tiptap/editor";
 import { ChatPanelButton } from "@hypr/ui/components/block/chat-panel-button";
@@ -85,6 +86,12 @@ export function MainHeader() {
           onClick={() => openNew({ type: "calendars", month: new Date(), active: true })}
           className="cursor-pointer h-5 w-5 text-muted-foreground hover:text-foreground"
         />
+        <button
+          onClick={() => trayCommands.setAppIcon("Default")}
+          className="cursor-pointer h-5 w-5 text-muted-foreground hover:text-foreground"
+        >
+          Icon
+        </button>
       </div>
 
       <ChatPanelButton

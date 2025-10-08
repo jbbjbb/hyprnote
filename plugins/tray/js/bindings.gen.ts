@@ -7,7 +7,9 @@
 
 
 export const commands = {
-
+async setAppIcon(icon: HyprAppIcon) : Promise<null> {
+    return await TAURI_INVOKE("plugin:tray|set_app_icon", { icon });
+}
 }
 
 /** user-defined events **/
@@ -20,7 +22,7 @@ export const commands = {
 
 /** user-defined types **/
 
-
+export type HyprAppIcon = "Default" | "Another"
 
 /** tauri-specta globals **/
 
