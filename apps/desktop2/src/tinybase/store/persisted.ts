@@ -352,7 +352,40 @@ export const StoreComponent = () => {
     [],
   )!;
 
-  const queries = useCreateQueries(store, (store) => createQueries(store), [store2])!;
+  const queries = useCreateQueries(
+    store,
+    (store) =>
+      createQueries(store).setQueryDefinition(
+        QUERIES.timelineSessions,
+        "sessions",
+        ({ select, join }) => {
+          select("user_id");
+          select("created_at");
+          select("title");
+          select("event_id");
+          select("events", "started_at").as("event_started_at");
+          select((getTableCell) => {
+            const eventStartedAt = getTableCell("events", "started_at");
+            if (eventStartedAt) {
+              const d = new Date(eventStartedAt);
+              return format(d, "yyyy-MM-dd");
+            }
+            const createdAt = getTableCell("sessions", "created_at");
+            const d = new Date(createdAt!);
+            return format(d, "yyyy-MM-dd");
+          }).as("display_date");
+          select((getTableCell) => {
+            const eventStartedAt = getTableCell("events", "started_at");
+            if (eventStartedAt) {
+              return eventStartedAt;
+            }
+            return getTableCell("sessions", "created_at") || "";
+          }).as("display_timestamp");
+          join("events", "event_id");
+        },
+      ),
+    [store2],
+  )!;
 
   const indexes = useCreateIndexes(store, (store) =>
     createIndexes(store)
@@ -399,7 +432,9 @@ export const StoreComponent = () => {
   return null;
 };
 
-export const QUERIES = {};
+export const QUERIES = {
+  timelineSessions: "timelineSessions",
+};
 
 export const METRICS = {
   totalHumans: "totalHumans",
