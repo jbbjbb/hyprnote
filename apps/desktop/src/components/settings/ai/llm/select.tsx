@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { generateText } from "ai";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@hypr/ui/components/ui/select";
 import { cn } from "@hypr/utils";
@@ -19,6 +19,7 @@ import { PROVIDERS } from "./shared";
 
 export function SelectProviderAndModel() {
   const configuredProviders = useConfiguredMapping();
+  const providerChangeRef = useRef<string | null>(null);
 
   const { current_llm_model, current_llm_provider } = useConfigValues(
     ["current_llm_model", "current_llm_provider"] as const,
@@ -58,6 +59,24 @@ export function SelectProviderAndModel() {
     },
   });
 
+  useEffect(() => {
+    const providerId = form.getFieldValue("provider");
+    if (providerId && providerId === providerChangeRef.current) {
+      const currentModel = form.getFieldValue("model");
+      if (!currentModel) {
+        const listModelsFunc = configuredProviders[providerId];
+        if (listModelsFunc) {
+          listModelsFunc().then((result) => {
+            if (result.models.length > 0) {
+              form.setFieldValue("model", result.models[0]);
+            }
+          }).catch(console.error);
+        }
+      }
+      providerChangeRef.current = null;
+    }
+  }, [form, configuredProviders]);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-row items-center gap-2">
@@ -67,16 +86,21 @@ export function SelectProviderAndModel() {
       <div
         className={cn([
           "flex flex-row items-center gap-4",
-          "p-4 rounded-md border border-neutral-500 bg-neutral-50",
-          (!!current_llm_provider && !!current_llm_model) ? "border-solid" : "border-dashed border-red-400",
+          "p-4 rounded-lg border border-neutral-200",
+          (!!current_llm_provider && !!current_llm_model) ? "bg-neutral-50" : "bg-red-50",
         ])}
       >
         <form.Field
           name="provider"
-          listeners={{ onChange: () => form.setFieldValue("model", "") }}
+          listeners={{
+            onChange: ({ value }) => {
+              form.setFieldValue("model", "");
+              providerChangeRef.current = value as string;
+            },
+          }}
         >
           {(field) => (
-            <div className="flex-[2] min-w-0">
+            <div className="flex-[2] min-w-0" data-llm-provider-selector>
               <Select
                 value={field.state.value}
                 onValueChange={(value) => field.handleChange(value)}
